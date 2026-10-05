@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delivery Dashboard — Kisan Market</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar" id="navbar"></nav>
+
+<div class="page-wrap">
+  <div class="container">
+
+    <div class="dash-layout">
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="user-chip">
+          <div class="avatar" id="avatarInitials"></div>
+          <div>
+            <strong id="userName"></strong>
+            <small>Delivery Agent</small>
+          </div>
+        </div>
+        <ul class="sidebar-nav">
+          <li><a href="#" class="active" data-tab="active" onclick="showTab('active')">🚚 Active Deliveries</a></li>
+          <li><a href="#" data-tab="all" onclick="showTab('all')">📋 Available Orders</a></li>
+          <li><a href="#" data-tab="history" onclick="showTab('history')">✅ Delivery History</a></li>
+          <li class="divider"></li>
+          <li><a href="index.html">🏠 Marketplace Home</a></li>
+          <li><a href="#" onclick="KM.logout(); window.location.href='index.html'; return false;">🚪 Logout</a></li>
+        </ul>
+      </aside>
+
+      <!-- Main content -->
+      <main>
+
+        <!-- ACTIVE TAB -->
+        <div id="tab-active">
+          <div class="section-head">
+            <h2>Active Deliveries<span id="welcomeName"></span></h2>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-tile clay">
+              <div class="num" id="statInTransit">0</div>
+              <div class="label">In Transit</div>
+            </div>
+            <div class="stat-tile green">
+              <div class="num" id="statDeliveredToday">0</div>
+              <div class="label">Delivered (Total)</div>
+            </div>
+            <div class="stat-tile">
+              <div class="num" id="statAvailable">0</div>
+              <div class="label">Unassigned Orders</div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>Order ID</th><th>Product</th><th>Qty</th><th>Date</th><th>Status</th><th>Action</th></tr>
+              </thead>
+              <tbody id="activeTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- AVAILABLE ORDERS TAB -->
+        <div id="tab-all" style="display:none;">
+          <div class="section-head"><h2>Available Orders (Unassigned)</h2></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>Order ID</th><th>Product</th><th>Qty</th><th>Total</th><th>Date</th><th>Action</th></tr>
+              </thead>
+              <tbody id="availableTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- HISTORY TAB -->
+        <div id="tab-history" style="display:none;">
+          <div class="section-head"><h2>Delivery History</h2></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>Order ID</th><th>Product</th><th>Qty</th><th>Date</th><th>Status</th></tr>
+              </thead>
+              <tbody id="historyTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+</div>
+
+<footer class="footer" id="footer"></footer>
+
+<script src="js/app.js"></script>
+<script>
+  const user = KM.requireRole(['delivery']);
+
+  function init() {
+    document.getElementById('userName').textContent = user.name;
+    document.getElementById('welcomeName').textContent = ', ' + user.name.split(' ')[0];
+    document.getElementById('avatarInitials').textContent = KM.initials(user.name);
+    renderAll();
+  }
+
+  function renderAll() {
+    const allOrders = KM.getOrders();
+    const myOrders = allOrders.filter(o => o.agentId === user.id);
+    const inTransit = myOrders.filter(o => o.status === 'transit');
+    const delivered = myOrders.filter(o => o.status === 'delivered');
+    const available = allOrders.filter(o => !o.agentId && o.status === 'pending');
+
+    document.getElementById('statInTransit').textContent = inTransit.length;
+    document.getElementById('statDeliveredToday').textContent = delivered.length;
+    document.getElementById('statAvailable').textContent = available.length;
+
+    // Active deliveries (in transit)
+    document.getElementById('activeTableBody').innerHTML = inTransit.map(o => `
+      <tr>
+        <td>#${o.id}</td>
+        <td>${o.productName}</td>
+        <td>${o.qty}</td>
+        <td>${o.date}</td>
+        <td><span class="status-pill ${o.status}">${o.status}</span></td>
+        <td><button class="btn btn-primary btn-sm" onclick="markDelivered(${o.id})">Mark Delivered</button></td>
+      </tr>
+    `).join('') || `<tr><td colspan="6" class="text-muted" style="text-align:center; padding:1.5rem;">No active deliveries. Check "Available Orders" to pick one up.</td></tr>`;
+
+    // Available orders
+    document.getElementById('availableTableBody').innerHTML = available.map(o => `
+      <tr>
+        <td>#${o.id}</td>
+        <td>${o.productName}</td>
+        <td>${o.qty}</td>
+        <td>₹${o.total}</td>
+        <td>${o.date}</td>
+        <td><button class="btn btn-accent btn-sm" onclick="acceptOrder(${o.id})">Accept &amp; Start</button></td>
+      </tr>
+    `).join('') || `<tr><td colspan="6" class="text-muted" style="text-align:center; padding:1.5rem;">No unassigned orders right now.</td></tr>`;
+
+    // History
+    document.getElementById('historyTableBody').innerHTML = delivered.map(o => `
+      <tr>
+        <td>#${o.id}</td>
+        <td>${o.productName}</td>
+        <td>${o.qty}</td>
+        <td>${o.date}</td>
+        <td><span class="status-pill ${o.status}">${o.status}</span></td>
+      </tr>
+    `).join('') || `<tr><td colspan="5" class="text-muted" style="text-align:center; padding:1.5rem;">No completed deliveries yet.</td></tr>`;
+  }
+
+  function showTab(tab) {
+    ['active', 'all', 'history'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = (t === tab) ? 'block' : 'none';
+    });
+    document.querySelectorAll('.sidebar-nav a[data-tab]').forEach(a => {
+      a.classList.toggle('active', a.dataset.tab === tab);
+    });
+  }
+
+  function acceptOrder(id) {
+    const orders = JSON.parse(localStorage.getItem('km_orders'));
+    const order = orders.find(o => o.id === id);
+    if (order) {
+      order.agentId = user.id;
+      order.status = 'transit';
+      localStorage.setItem('km_orders', JSON.stringify(orders));
+    }
+    renderAll();
+  }
+
+  function markDelivered(id) {
+    KM.updateOrderStatus(id, 'delivered');
+    renderAll();
+  }
+
+  KM.renderNavbar('dashboard');
+  KM.renderFooter();
+  init();
+</script>
+
+</body>
+</html>

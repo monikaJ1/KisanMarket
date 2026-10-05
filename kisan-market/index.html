@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kisan Market — Fresh From the Farmer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar" id="navbar"></nav>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-eyebrow">Field to Table, No Middlemen</div>
+    <h1>Buy fresh produce straight from the farmers who grow it.</h1>
+    <p>Kisan Market connects local farmers directly with consumers — fair prices for growers, fresher produce for you, and full transparency in between.</p>
+    <div class="hero-search">
+      <input type="text" id="searchInput" placeholder="Search for tomatoes, mangoes, rice...">
+      <button class="btn btn-accent" onclick="filterProducts()">Search</button>
+    </div>
+  </div>
+</section>
+
+<div class="page-wrap">
+  <div class="container">
+
+    <div class="section-head">
+      <h2>Today's Harvest</h2>
+      <span class="count" id="resultCount"></span>
+    </div>
+
+    <div class="filter-bar" id="filterBar">
+      <div class="chip active" data-cat="All" onclick="setCategory('All')">All</div>
+      <div class="chip" data-cat="Vegetables" onclick="setCategory('Vegetables')">Vegetables</div>
+      <div class="chip" data-cat="Fruits" onclick="setCategory('Fruits')">Fruits</div>
+      <div class="chip" data-cat="Grains" onclick="setCategory('Grains')">Grains</div>
+    </div>
+
+    <div class="product-grid" id="productGrid"></div>
+
+  </div>
+</div>
+
+<footer class="footer" id="footer"></footer>
+
+<!-- Login required modal -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h3>Login Required</h3>
+    <p class="text-muted">Please log in as a consumer to place an order from this product.</p>
+    <div style="display:flex; gap:0.6rem; margin-top:1rem;">
+      <a href="login.html" class="btn btn-primary">Go to Login</a>
+      <a href="register.html" class="btn btn-outline">Register</a>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  let currentCategory = 'All';
+
+  function setCategory(cat) {
+    currentCategory = cat;
+    document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.cat === cat));
+    filterProducts();
+  }
+
+  function filterProducts() {
+    const search = document.getElementById('searchInput').value;
+    const filter = { status: 'active' };
+    if (currentCategory !== 'All') filter.category = currentCategory;
+    if (search) filter.search = search;
+    renderProducts(KM.getProducts(filter));
+  }
+
+  function renderProducts(products) {
+    const grid = document.getElementById('productGrid');
+    document.getElementById('resultCount').textContent = `${products.length} item${products.length !== 1 ? 's' : ''}`;
+
+    if (products.length === 0) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;">
+        <div class="icon">🌱</div>
+        <h3>No produce found</h3>
+        <p>Try a different search or category.</p>
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = products.map(p => `
+      <div class="ticket">
+        <div class="ticket-img">
+          ${p.emoji}
+          ${p.qty < 20 ? '<div class="stamp">Low Stock</div>' : ''}
+        </div>
+        <div class="ticket-body">
+          <h3>${p.name}</h3>
+          <div class="ticket-farmer">by ${p.farmerName}</div>
+          <div class="ticket-price-row">
+            <div class="ticket-price">&#8377;${p.price} <span>/ ${p.unit}</span></div>
+            <div class="ticket-qty">${p.qty} ${p.unit} left</div>
+          </div>
+        </div>
+        <div class="ticket-actions">
+          <button class="btn btn-primary btn-sm" onclick="handleOrder(${p.id})">Order Now</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function handleOrder(productId) {
+    const user = KM.currentUser();
+    if (!user || user.role !== 'consumer') {
+      document.getElementById('loginModal').classList.add('open');
+      return;
+    }
+    window.location.href = `consumer-dashboard.html?order=${productId}`;
+  }
+
+  function closeModal() {
+    document.getElementById('loginModal').classList.remove('open');
+  }
+
+  document.getElementById('searchInput').addEventListener('input', filterProducts);
+
+  KM.renderNavbar('home');
+  KM.renderFooter();
+  filterProducts();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — Kisan Market</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar" id="navbar"></nav>
+
+<div class="page-wrap">
+  <div class="container">
+
+    <div class="dash-layout">
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="user-chip">
+          <div class="avatar" id="avatarInitials"></div>
+          <div>
+            <strong id="userName"></strong>
+            <small>Administrator</small>
+          </div>
+        </div>
+        <ul class="sidebar-nav">
+          <li><a href="#" class="active" data-tab="overview" onclick="showTab('overview')">📊 Overview</a></li>
+          <li><a href="#" data-tab="users" onclick="showTab('users')">👥 Manage Users</a></li>
+          <li><a href="#" data-tab="products" onclick="showTab('products')">🌾 Manage Products</a></li>
+          <li><a href="#" data-tab="orders" onclick="showTab('orders')">📦 All Orders</a></li>
+          <li class="divider"></li>
+          <li><a href="index.html">🏠 Marketplace Home</a></li>
+          <li><a href="#" onclick="KM.logout(); window.location.href='index.html'; return false;">🚪 Logout</a></li>
+        </ul>
+      </aside>
+
+      <!-- Main content -->
+      <main>
+
+        <!-- OVERVIEW TAB -->
+        <div id="tab-overview">
+          <div class="section-head"><h2>System Overview</h2></div>
+          <div class="stat-grid">
+            <div class="stat-tile green">
+              <div class="num" id="statFarmers">0</div>
+              <div class="label">Farmers</div>
+            </div>
+            <div class="stat-tile">
+              <div class="num" id="statConsumers">0</div>
+              <div class="label">Consumers</div>
+            </div>
+            <div class="stat-tile clay">
+              <div class="num" id="statAgents">0</div>
+              <div class="label">Delivery Agents</div>
+            </div>
+            <div class="stat-tile green">
+              <div class="num" id="statProducts">0</div>
+              <div class="label">Active Products</div>
+            </div>
+            <div class="stat-tile clay">
+              <div class="num" id="statPending">0</div>
+              <div class="label">Pending Approvals</div>
+            </div>
+            <div class="stat-tile">
+              <div class="num" id="statOrders">0</div>
+              <div class="label">Total Orders</div>
+            </div>
+          </div>
+
+          <div class="section-head"><h2>Products Awaiting Approval</h2></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>Product</th><th>Farmer</th><th>Category</th><th>Price</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="pendingTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- USERS TAB -->
+        <div id="tab-users" style="display:none;">
+          <div class="section-head">
+            <h2>Manage Users</h2>
+          </div>
+          <div class="filter-bar">
+            <div class="chip active" data-role="All" onclick="setUserFilter('All')">All</div>
+            <div class="chip" data-role="farmer" onclick="setUserFilter('farmer')">Farmers</div>
+            <div class="chip" data-role="consumer" onclick="setUserFilter('consumer')">Consumers</div>
+            <div class="chip" data-role="delivery" onclick="setUserFilter('delivery')">Delivery Agents</div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="usersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PRODUCTS TAB -->
+        <div id="tab-products" style="display:none;">
+          <div class="section-head"><h2>Manage Products</h2></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>Product</th><th>Farmer</th><th>Category</th><th>Price</th><th>Qty</th><th>Status</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="allProductsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ORDERS TAB -->
+        <div id="tab-orders" style="display:none;">
+          <div class="section-head"><h2>All Orders</h2></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>Order ID</th><th>Product</th><th>Qty</th><th>Total</th><th>Date</th><th>Status</th></tr>
+              </thead>
+              <tbody id="allOrdersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+</div>
+
+<footer class="footer" id="footer"></footer>
+
+<script src="js/app.js"></script>
+<script>
+  const user = KM.requireRole(['admin']);
+  let userFilter = 'All';
+
+  function init() {
+    document.getElementById('userName').textContent = user.name;
+    document.getElementById('avatarInitials').textContent = KM.initials(user.name);
+    renderAll();
+  }
+
+  function renderAll() {
+    const users = KM.getUsers();
+    const products = KM.getProducts();
+    const orders = KM.getOrders();
+
+    // Stats
+    document.getElementById('statFarmers').textContent = users.filter(u => u.role === 'farmer').length;
+    document.getElementById('statConsumers').textContent = users.filter(u => u.role === 'consumer').length;
+    document.getElementById('statAgents').textContent = users.filter(u => u.role === 'delivery').length;
+    document.getElementById('statProducts').textContent = products.filter(p => p.status === 'active').length;
+    document.getElementById('statPending').textContent = products.filter(p => p.status === 'pending').length;
+    document.getElementById('statOrders').textContent = orders.length;
+
+    // Pending products
+    const pending = products.filter(p => p.status === 'pending');
+    document.getElementById('pendingTableBody').innerHTML = pending.map(p => `
+      <tr>
+        <td>${p.emoji} ${p.name}</td>
+        <td>${p.farmerName}</td>
+        <td>${p.category}</td>
+        <td>₹${p.price} / ${p.unit}</td>
+        <td>
+          <button class="btn btn-primary btn-sm" onclick="approveProduct(${p.id})">Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="rejectProduct(${p.id})">Reject</button>
+        </td>
+      </tr>
+    `).join('') || `<tr><td colspan="5" class="text-muted" style="text-align:center; padding:1.5rem;">No products awaiting approval.</td></tr>`;
+
+    // Users table
+    let filteredUsers = users.filter(u => u.role !== 'admin');
+    if (userFilter !== 'All') filteredUsers = filteredUsers.filter(u => u.role === userFilter);
+    document.getElementById('usersTableBody').innerHTML = filteredUsers.map(u => `
+      <tr>
+        <td><strong>${u.name}</strong></td>
+        <td>${u.email}</td>
+        <td>${u.role}</td>
+        <td><span class="status-pill ${u.status === 'active' ? 'active' : 'removed'}">${u.status}</span></td>
+        <td>
+          ${u.status === 'active'
+            ? `<button class="btn btn-danger btn-sm" onclick="toggleUserStatus(${u.id}, 'suspended')">Suspend</button>`
+            : `<button class="btn btn-primary btn-sm" onclick="toggleUserStatus(${u.id}, 'active')">Reactivate</button>`
+          }
+        </td>
+      </tr>
+    `).join('') || `<tr><td colspan="5" class="text-muted" style="text-align:center; padding:1.5rem;">No users found.</td></tr>`;
+
+    // All products table
+    document.getElementById('allProductsTableBody').innerHTML = products.map(p => `
+      <tr>
+        <td>${p.emoji} ${p.name}</td>
+        <td>${p.farmerName}</td>
+        <td>${p.category}</td>
+        <td>₹${p.price} / ${p.unit}</td>
+        <td>${p.qty}</td>
+        <td><span class="status-pill ${p.status}">${p.status}</span></td>
+        <td>
+          ${p.status !== 'removed'
+            ? `<button class="btn btn-danger btn-sm" onclick="setProductStatus(${p.id}, 'removed')">Remove</button>`
+            : `<button class="btn btn-primary btn-sm" onclick="setProductStatus(${p.id}, 'active')">Restore</button>`
+          }
+        </td>
+      </tr>
+    `).join('') || `<tr><td colspan="7" class="text-muted" style="text-align:center; padding:1.5rem;">No products found.</td></tr>`;
+
+    // All orders
+    document.getElementById('allOrdersTableBody').innerHTML = orders.map(o => `
+      <tr>
+        <td>#${o.id}</td>
+        <td>${o.productName}</td>
+        <td>${o.qty}</td>
+        <td>₹${o.total}</td>
+        <td>${o.date}</td>
+        <td><span class="status-pill ${o.status}">${o.status}</span></td>
+      </tr>
+    `).join('') || `<tr><td colspan="6" class="text-muted" style="text-align:center; padding:1.5rem;">No orders yet.</td></tr>`;
+  }
+
+  function showTab(tab) {
+    ['overview', 'users', 'products', 'orders'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = (t === tab) ? 'block' : 'none';
+    });
+    document.querySelectorAll('.sidebar-nav a[data-tab]').forEach(a => {
+      a.classList.toggle('active', a.dataset.tab === tab);
+    });
+  }
+
+  function setUserFilter(role) {
+    userFilter = role;
+    document.querySelectorAll('#tab-users .chip').forEach(c => c.classList.toggle('active', c.dataset.role === role));
+    renderAll();
+  }
+
+  function approveProduct(id) { KM.updateProduct(id, { status: 'active' }); renderAll(); }
+  function rejectProduct(id) {
+    if (confirm('Reject and remove this product listing?')) {
+      KM.deleteProduct(id);
+      renderAll();
+    }
+  }
+  function setProductStatus(id, status) { KM.updateProduct(id, { status }); renderAll(); }
+  function toggleUserStatus(id, status) { KM.updateUserStatus(id, status); renderAll(); }
+
+  KM.renderNavbar('dashboard');
+  KM.renderFooter();
+  init();
+</script>
+
+</body>
+</html>

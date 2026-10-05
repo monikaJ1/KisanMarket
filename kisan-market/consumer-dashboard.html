@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consumer Dashboard — Kisan Market</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar" id="navbar"></nav>
+
+<div class="page-wrap">
+  <div class="container">
+
+    <div class="dash-layout">
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="user-chip">
+          <div class="avatar" id="avatarInitials"></div>
+          <div>
+            <strong id="userName"></strong>
+            <small>Consumer</small>
+          </div>
+        </div>
+        <ul class="sidebar-nav">
+          <li><a href="#" class="active" data-tab="browse" onclick="showTab('browse')">🛒 Browse Products</a></li>
+          <li><a href="#" data-tab="orders" onclick="showTab('orders')">📦 My Orders</a></li>
+          <li class="divider"></li>
+          <li><a href="index.html">🏠 Marketplace Home</a></li>
+          <li><a href="#" onclick="KM.logout(); window.location.href='index.html'; return false;">🚪 Logout</a></li>
+        </ul>
+      </aside>
+
+      <!-- Main content -->
+      <main>
+
+        <!-- BROWSE TAB -->
+        <div id="tab-browse">
+          <div class="section-head">
+            <h2>Welcome<span id="welcomeName"></span> 👋</h2>
+            <span class="count" id="resultCount"></span>
+          </div>
+
+          <div class="filter-bar">
+            <div class="chip active" data-cat="All" onclick="setCategory('All')">All</div>
+            <div class="chip" data-cat="Vegetables" onclick="setCategory('Vegetables')">Vegetables</div>
+            <div class="chip" data-cat="Fruits" onclick="setCategory('Fruits')">Fruits</div>
+            <div class="chip" data-cat="Grains" onclick="setCategory('Grains')">Grains</div>
+          </div>
+
+          <div class="product-grid" id="productGrid"></div>
+        </div>
+
+        <!-- ORDERS TAB -->
+        <div id="tab-orders" style="display:none;">
+          <div class="section-head"><h2>My Orders</h2></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Product</th>
+                  <th>Qty</th>
+                  <th>Total</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="ordersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+</div>
+
+<footer class="footer" id="footer"></footer>
+
+<!-- Order Modal -->
+<div class="modal-overlay" id="orderModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeOrderModal()">&times;</button>
+    <h3>Place Order</h3>
+    <div id="orderProductInfo" class="mb-2"></div>
+    <form id="orderForm">
+      <input type="hidden" id="orderProductId">
+      <div class="form-group">
+        <label class="form-label" for="orderQty">Quantity</label>
+        <input type="number" id="orderQty" class="form-control" min="1" value="1" required>
+      </div>
+      <div class="form-group">
+        <strong>Total: <span id="orderTotal" style="color: var(--clay);">₹0</span></strong>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Confirm Order</button>
+    </form>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  const user = KM.requireRole(['consumer']);
+  let currentCategory = 'All';
+  let selectedProduct = null;
+
+  function init() {
+    document.getElementById('userName').textContent = user.name;
+    document.getElementById('welcomeName').textContent = ', ' + user.name.split(' ')[0];
+    document.getElementById('avatarInitials').textContent = KM.initials(user.name);
+    renderProducts();
+    renderOrders();
+
+    // Check if redirected with ?order=ID
+    const params = new URLSearchParams(window.location.search);
+    const orderId = params.get('order');
+    if (orderId) openOrderModal(Number(orderId));
+  }
+
+  function setCategory(cat) {
+    currentCategory = cat;
+    document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.cat === cat));
+    renderProducts();
+  }
+
+  function renderProducts() {
+    const filter = { status: 'active' };
+    if (currentCategory !== 'All') filter.category = currentCategory;
+    const products = KM.getProducts(filter);
+
+    document.getElementById('resultCount').textContent = `${products.length} item${products.length !== 1 ? 's' : ''}`;
+    const grid = document.getElementById('productGrid');
+
+    if (products.length === 0) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🌱</div><p>No produce found in this category.</p></div>`;
+      return;
+    }
+
+    grid.innerHTML = products.map(p => `
+      <div class="ticket">
+        <div class="ticket-img">
+          ${p.emoji}
+          ${p.qty < 20 ? '<div class="stamp">Low Stock</div>' : ''}
+        </div>
+        <div class="ticket-body">
+          <h3>${p.name}</h3>
+          <div class="ticket-farmer">by ${p.farmerName}</div>
+          <div class="ticket-price-row">
+            <div class="ticket-price">₹${p.price} <span>/ ${p.unit}</span></div>
+            <div class="ticket-qty">${p.qty} ${p.unit} left</div>
+          </div>
+        </div>
+        <div class="ticket-actions">
+          <button class="btn btn-primary btn-sm" onclick="openOrderModal(${p.id})">Order Now</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderOrders() {
+    const orders = KM.getOrders({ consumerId: user.id });
+    document.getElementById('ordersTableBody').innerHTML = orders.map(o => `
+      <tr>
+        <td>#${o.id}</td>
+        <td>${o.productName}</td>
+        <td>${o.qty}</td>
+        <td>₹${o.total}</td>
+        <td>${o.date}</td>
+        <td><span class="status-pill ${o.status}">${o.status}</span></td>
+      </tr>
+    `).join('') || `<tr><td colspan="6" class="text-muted" style="text-align:center; padding:2rem;">You haven't placed any orders yet.</td></tr>`;
+  }
+
+  function showTab(tab) {
+    ['browse', 'orders'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = (t === tab) ? 'block' : 'none';
+    });
+    document.querySelectorAll('.sidebar-nav a[data-tab]').forEach(a => {
+      a.classList.toggle('active', a.dataset.tab === tab);
+    });
+  }
+
+  function openOrderModal(productId) {
+    selectedProduct = KM.getProducts().find(p => p.id === productId);
+    if (!selectedProduct) return;
+
+    document.getElementById('orderProductInfo').innerHTML = `
+      <div style="display:flex; align-items:center; gap:0.8rem;">
+        <div style="font-size:2rem;">${selectedProduct.emoji}</div>
+        <div>
+          <strong>${selectedProduct.name}</strong><br>
+          <span class="text-muted">₹${selectedProduct.price} / ${selectedProduct.unit} &middot; ${selectedProduct.qty} ${selectedProduct.unit} available</span>
+        </div>
+      </div>
+    `;
+    document.getElementById('orderProductId').value = selectedProduct.id;
+    document.getElementById('orderQty').value = 1;
+    document.getElementById('orderQty').max = selectedProduct.qty;
+    updateOrderTotal();
+    document.getElementById('orderModal').classList.add('open');
+  }
+
+  function closeOrderModal() {
+    document.getElementById('orderModal').classList.remove('open');
+    // Clean up URL param
+    window.history.replaceState({}, '', 'consumer-dashboard.html');
+  }
+
+  function updateOrderTotal() {
+    const qty = Number(document.getElementById('orderQty').value) || 0;
+    const total = selectedProduct ? selectedProduct.price * qty : 0;
+    document.getElementById('orderTotal').textContent = '₹' + total;
+  }
+
+  document.getElementById('orderQty').addEventListener('input', updateOrderTotal);
+
+  document.getElementById('orderForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const qty = Number(document.getElementById('orderQty').value);
+    const result = KM.placeOrder(selectedProduct.id, qty);
+
+    if (result.success) {
+      closeOrderModal();
+      renderProducts();
+      renderOrders();
+      showTab('orders');
+      alert('Order placed successfully!');
+    } else {
+      alert(result.message);
+    }
+  });
+
+  KM.renderNavbar('dashboard');
+  KM.renderFooter();
+  init();
+</script>
+
+</body>
+</html>

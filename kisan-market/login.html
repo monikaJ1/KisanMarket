@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — Kisan Market</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar" id="navbar"></nav>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-eyebrow">Welcome Back</div>
+    <h2>Log in to your account</h2>
+    <p class="auth-sub">Choose your role and enter your credentials.</p>
+
+    <div id="alertBox"></div>
+
+    <form id="loginForm">
+      <div class="form-group">
+        <label class="form-label">I am a...</label>
+        <div class="role-select">
+          <label class="role-option active">
+            <input type="radio" name="role" value="consumer" checked>
+            🛒<br>Consumer
+          </label>
+          <label class="role-option">
+            <input type="radio" name="role" value="farmer">
+            🌾<br>Farmer
+          </label>
+          <label class="role-option">
+            <input type="radio" name="role" value="delivery">
+            🚚<br>Delivery
+          </label>
+          <label class="role-option">
+            <input type="radio" name="role" value="admin">
+            🛠️<br>Admin
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address</label>
+        <input type="email" id="email" class="form-control" placeholder="you@example.com" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input type="password" id="password" class="form-control" placeholder="••••••••" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block">Log In</button>
+    </form>
+
+    <div class="auth-divider">demo credentials</div>
+    <p class="text-muted" style="font-size:0.82rem; line-height:1.5;">
+      Farmer: ravi@farm.com / farm123<br>
+      Consumer: priya@mail.com / cons123<br>
+      Delivery: suresh@delivery.com / del123<br>
+      Admin: admin@kisanmarket.com / admin123
+    </p>
+
+    <div class="auth-foot">
+      Don't have an account? <a href="register.html">Register here</a>
+    </div>
+  </div>
+</div>
+
+<footer class="footer" id="footer"></footer>
+
+<script src="js/app.js"></script>
+<script>
+  // Role option highlighting
+  document.querySelectorAll('.role-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      document.querySelectorAll('.role-option').forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+    });
+  });
+
+  document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const role = document.querySelector('input[name="role"]:checked').value;
+
+    const result = KM.login(email, password, role);
+    const alertBox = document.getElementById('alertBox');
+
+    if (result.success) {
+      const dashMap = {
+        farmer: 'farmer-dashboard.html',
+        consumer: 'consumer-dashboard.html',
+        admin: 'admin-dashboard.html',
+        delivery: 'delivery-dashboard.html'
+      };
+      window.location.href = dashMap[role];
+    } else {
+      alertBox.innerHTML = `<div class="alert alert-error">${result.message}</div>`;
+    }
+  });
+
+  KM.renderNavbar('login');
+  KM.renderFooter();
+</script>
+
+</body>
+</html>

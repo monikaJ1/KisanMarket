@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farmer Dashboard — Kisan Market</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar" id="navbar"></nav>
+
+<div class="page-wrap">
+  <div class="container">
+
+    <div class="dash-layout">
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="user-chip">
+          <div class="avatar" id="avatarInitials"></div>
+          <div>
+            <strong id="userName"></strong>
+            <small>Farmer</small>
+          </div>
+        </div>
+        <ul class="sidebar-nav">
+          <li><a href="#" class="active" data-tab="overview" onclick="showTab('overview')">📊 Overview</a></li>
+          <li><a href="#" data-tab="products" onclick="showTab('products')">🌾 My Products</a></li>
+          <li><a href="#" data-tab="orders" onclick="showTab('orders')">📦 Orders Received</a></li>
+          <li class="divider"></li>
+          <li><a href="index.html">🏠 Back to Marketplace</a></li>
+          <li><a href="#" onclick="KM.logout(); window.location.href='index.html'; return false;">🚪 Logout</a></li>
+        </ul>
+      </aside>
+
+      <!-- Main content -->
+      <main>
+
+        <!-- OVERVIEW TAB -->
+        <div id="tab-overview">
+          <div class="section-head">
+            <h2>Welcome back<span id="welcomeName"></span> 🌱</h2>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-tile green">
+              <div class="num" id="statTotalProducts">0</div>
+              <div class="label">Active Listings</div>
+            </div>
+            <div class="stat-tile clay">
+              <div class="num" id="statTotalOrders">0</div>
+              <div class="label">Orders Received</div>
+            </div>
+            <div class="stat-tile">
+              <div class="num" id="statTotalRevenue">₹0</div>
+              <div class="label">Total Revenue</div>
+            </div>
+            <div class="stat-tile clay">
+              <div class="num" id="statLowStock">0</div>
+              <div class="label">Low Stock Items</div>
+            </div>
+          </div>
+
+          <div class="section-head"><h2>Recent Listings</h2></div>
+          <div class="product-grid" id="recentProductsGrid"></div>
+        </div>
+
+        <!-- PRODUCTS TAB -->
+        <div id="tab-products" style="display:none;">
+          <div class="section-head">
+            <h2>My Products</h2>
+            <button class="btn btn-accent" onclick="openProductModal()">+ Add New Product</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Category</th>
+                  <th>Price</th>
+                  <th>Quantity</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="productsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ORDERS TAB -->
+        <div id="tab-orders" style="display:none;">
+          <div class="section-head">
+            <h2>Orders Received</h2>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Product</th>
+                  <th>Qty</th>
+                  <th>Total</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="ordersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+</div>
+
+<footer class="footer" id="footer"></footer>
+
+<!-- Add/Edit Product Modal -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeProductModal()">&times;</button>
+    <h3 id="modalTitle">Add New Product</h3>
+    <form id="productForm">
+      <input type="hidden" id="productId">
+      <div class="form-group">
+        <label class="form-label" for="pName">Product Name</label>
+        <input type="text" id="pName" class="form-control" placeholder="e.g. Fresh Tomatoes" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="pCategory">Category</label>
+        <select id="pCategory" class="form-control" required>
+          <option value="Vegetables">Vegetables</option>
+          <option value="Fruits">Fruits</option>
+          <option value="Grains">Grains</option>
+          <option value="Dairy">Dairy</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="pEmoji">Icon (emoji)</label>
+        <input type="text" id="pEmoji" class="form-control" placeholder="e.g. 🍅" maxlength="2">
+        <div class="input-hint">Used as a placeholder image in the listing.</div>
+      </div>
+      <div style="display:flex; gap:1rem;">
+        <div class="form-group" style="flex:1;">
+          <label class="form-label" for="pPrice">Price (₹)</label>
+          <input type="number" id="pPrice" class="form-control" min="1" required>
+        </div>
+        <div class="form-group" style="flex:1;">
+          <label class="form-label" for="pUnit">Unit</label>
+          <select id="pUnit" class="form-control" required>
+            <option value="kg">kg</option>
+            <option value="dozen">dozen</option>
+            <option value="bundle">bundle</option>
+            <option value="litre">litre</option>
+            <option value="piece">piece</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="pQty">Available Quantity</label>
+        <input type="number" id="pQty" class="form-control" min="0" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Save Product</button>
+    </form>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+  const user = KM.requireRole(['farmer']);
+
+  function init() {
+    document.getElementById('userName').textContent = user.name;
+    document.getElementById('welcomeName').textContent = ', ' + user.name.split(' ')[0];
+    document.getElementById('avatarInitials').textContent = KM.initials(user.name);
+    renderAll();
+  }
+
+  function renderAll() {
+    const products = KM.getProducts({ farmerId: user.id });
+    const orders = KM.getOrders().filter(o => products.some(p => p.id === o.productId));
+
+    // Stats
+    document.getElementById('statTotalProducts').textContent = products.filter(p => p.status === 'active').length;
+    document.getElementById('statTotalOrders').textContent = orders.length;
+    document.getElementById('statTotalRevenue').textContent = '₹' + orders.reduce((sum, o) => sum + o.total, 0);
+    document.getElementById('statLowStock').textContent = products.filter(p => p.qty < 20).length;
+
+    // Recent products (overview)
+    document.getElementById('recentProductsGrid').innerHTML = products.slice(0, 3).map(p => `
+      <div class="ticket">
+        <div class="ticket-img">${p.emoji}</div>
+        <div class="ticket-body">
+          <h3>${p.name}</h3>
+          <div class="ticket-farmer">${p.category}</div>
+          <div class="ticket-price-row">
+            <div class="ticket-price">₹${p.price} <span>/ ${p.unit}</span></div>
+            <div class="ticket-qty">${p.qty} ${p.unit}</div>
+          </div>
+        </div>
+      </div>
+    `).join('') || '<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🌾</div><p>No products yet. Add your first listing!</p></div>';
+
+    // Products table
+    document.getElementById('productsTableBody').innerHTML = products.map(p => `
+      <tr>
+        <td><strong>${p.emoji} ${p.name}</strong></td>
+        <td>${p.category}</td>
+        <td>₹${p.price} / ${p.unit}</td>
+        <td>${p.qty} ${p.unit}</td>
+        <td><span class="status-pill ${p.status}">${p.status}</span></td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick="editProduct(${p.id})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="removeProduct(${p.id})">Delete</button>
+        </td>
+      </tr>
+    `).join('') || `<tr><td colspan="6" class="text-muted" style="text-align:center; padding:2rem;">No products added yet.</td></tr>`;
+
+    // Orders table
+    document.getElementById('ordersTableBody').innerHTML = orders.map(o => `
+      <tr>
+        <td>#${o.id}</td>
+        <td>${o.productName}</td>
+        <td>${o.qty}</td>
+        <td>₹${o.total}</td>
+        <td>${o.date}</td>
+        <td><span class="status-pill ${o.status}">${o.status}</span></td>
+      </tr>
+    `).join('') || `<tr><td colspan="6" class="text-muted" style="text-align:center; padding:2rem;">No orders received yet.</td></tr>`;
+  }
+
+  function showTab(tab) {
+    ['overview', 'products', 'orders'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = (t === tab) ? 'block' : 'none';
+    });
+    document.querySelectorAll('.sidebar-nav a[data-tab]').forEach(a => {
+      a.classList.toggle('active', a.dataset.tab === tab);
+    });
+  }
+
+  // Modal handling
+  function openProductModal() {
+    document.getElementById('modalTitle').textContent = 'Add New Product';
+    document.getElementById('productForm').reset();
+    document.getElementById('productId').value = '';
+    document.getElementById('productModal').classList.add('open');
+  }
+
+  function editProduct(id) {
+    const product = KM.getProducts({ farmerId: user.id }).find(p => p.id === id);
+    if (!product) return;
+    document.getElementById('modalTitle').textContent = 'Edit Product';
+    document.getElementById('productId').value = product.id;
+    document.getElementById('pName').value = product.name;
+    document.getElementById('pCategory').value = product.category;
+    document.getElementById('pEmoji').value = product.emoji;
+    document.getElementById('pPrice').value = product.price;
+    document.getElementById('pUnit').value = product.unit;
+    document.getElementById('pQty').value = product.qty;
+    document.getElementById('productModal').classList.add('open');
+  }
+
+  function closeProductModal() {
+    document.getElementById('productModal').classList.remove('open');
+  }
+
+  function removeProduct(id) {
+    if (confirm('Are you sure you want to delete this product listing?')) {
+      KM.deleteProduct(id);
+      renderAll();
+    }
+  }
+
+  document.getElementById('productForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const id = document.getElementById('productId').value;
+    const data = {
+      name: document.getElementById('pName').value.trim(),
+      category: document.getElementById('pCategory').value,
+      emoji: document.getElementById('pEmoji').value.trim() || '🌿',
+      price: document.getElementById('pPrice').value,
+      unit: document.getElementById('pUnit').value,
+      qty: document.getElementById('pQty').value
+    };
+
+    if (id) {
+      KM.updateProduct(Number(id), { ...data, price: Number(data.price), qty: Number(data.qty) });
+    } else {
+      KM.addProduct(data);
+    }
+
+    closeProductModal();
+    renderAll();
+  });
+
+  KM.renderNavbar('dashboard');
+  KM.renderFooter();
+  init();
+</script>
+
+</body>
+</html>
